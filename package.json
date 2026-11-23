@@ -21,6 +21,6 @@
     "bench": "node scripts/bench.ts",
     "demo": "pnpm build:wasm && pnpm --filter demo-browser dev",
     "typecheck": "pnpm -r typecheck",
-    "lint": "cargo fmt --check && cargo clippy --all-targets --locked --workspace -- -D warnings && cargo clippy --target wasm32-unknown-unknown -p ml2drender-wasm --locked -- -D warnings && uv run --project crates/python --only-group dev ruff check crates/python && uv run --project crates/python --only-group dev ruff format --check crates/python"
+    "lint": "cargo fmt --check && cargo clippy --all-targets --locked --workspace -- -D warnings && cargo clippy --target wasm32-unknown-unknown -p ml2drender-wasm --locked -- -D warnings && uv run --project crates/python --only-group lint ruff check crates/python && uv run --project crates/python --only-group lint ruff format --check crates/python"
   }
 }

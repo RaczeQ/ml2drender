@@ -39,7 +39,7 @@ pip install ml2drender         # Python
 |---|---|---|
 | [`@ml2drender/wasm`](#javascript-api) | browsers, Node.js, Deno, Cloudflare Workers | Everything below: fetching, Web Mercator and projected views, reprojected sources for GL JS. |
 | [`@ml2drender/node`](https://github.com/Kanahiro/ml2drender/tree/main/packages/ml2drender-node#readme) | Node.js (Linux, macOS, Windows) | HTTP fetching by default, with an optional `loadResource(url)` callback. Web Mercator cameras; boxes, tiles and cameras of a projected CRS. Renders run in parallel off the JS thread. |
-| [`ml2drender` on PyPI](https://github.com/Kanahiro/ml2drender/tree/main/crates/python#readme) | CPython 3.11+ (Linux, macOS, Windows) | Async HTTP fetching with HTTPX by default, with an optional async `load(url)` callback. Web Mercator cameras; boxes, tiles and cameras of a projected CRS. |
+| [`ml2drender` on PyPI](https://github.com/Kanahiro/ml2drender/tree/main/crates/python#readme) | CPython 3.11+ (Linux, macOS, Windows) | Async HTTP fetching with HTTPX by default, with an optional async `load(url)` callback. Web Mercator cameras; boxes, tiles and cameras of a projected CRS. Basemaps for matplotlib and GeoPandas with contextily's `add_basemap` parameters ([`ml2drender.basemap`](https://github.com/Kanahiro/ml2drender/tree/main/crates/python#basemaps-for-matplotlib)). |
 
 All three draw with the same Rust core. To build from source, see [Development](#development).
 

@@ -102,6 +102,72 @@ rgba = await utm.render_view(ml2drender.View((139.767, 35.681), zoom=6, width=80
 
 Reprojected sources for MapLibre GL JS are in the [JavaScript package](https://github.com/Kanahiro/ml2drender#javascript-api).
 
+## Basemaps for matplotlib
+
+`ml2drender.basemap` draws MapLibre styles under data plotted with matplotlib or GeoPandas, with the parameters of [contextily](https://contextily.readthedocs.io/)'s `add_basemap`. It renders the extent of the axes once, at their resolution, directly in their CRS, instead of merging and warping raster tiles. [Examples with rendered maps](https://github.com/Kanahiro/ml2drender/blob/main/examples/python/basemap.ipynb) ([open in Colab](https://colab.research.google.com/github/Kanahiro/ml2drender/blob/main/examples/python/basemap.ipynb)).
+
+```sh
+pip install ml2drender matplotlib pyproj
+```
+
+```python
+import geopandas
+import ml2drender.basemap as mlb
+
+gdf = geopandas.read_file("districts.gpkg")
+ax = gdf.plot(alpha=0.5, edgecolor="k")
+mlb.add_basemap(ax, crs=gdf.crs, source="OpenFreeMap.Positron")
+```
+
+It needs matplotlib, and pyproj for `crs` (EPSG:3857 axes need none). They are not dependencies of `ml2drender`: the module imports without them, and `add_basemap` raises an `ImportError` with the `pip install` command for the missing ones.
+
+| | |
+|---|---|
+| `add_basemap(ax, zoom="auto", source=None, headers=None, interpolation="bilinear", attribution=None, attribution_size=8, reset_extent=True, crs=None, resampling=None, zoom_adjust=None, timeout=None, *, labels=True, pixel_ratio=None, load=None, **extra_imshow_args)` | Draws the style `source` on `ax` with `imshow`. |
+| `add_attribution(ax, text, font_size=8, **kwargs)` | Writes `text` in the bottom right corner of `ax`, wrapped to its width, on a translucent white box as MapLibre does (in an installed font of Chinese, Japanese and Korean where matplotlib's default lacks them). `kwargs` go to matplotlib's `Annotation`. |
+| `set_cache_dir(path)` | Keeps downloads in `path`, reused by later sessions that set it again, instead of a temporary directory removed at exit. |
+| `STYLES` | Named styles that load without an API key, for `source` (below). |
+
+The parameters mean what they mean in contextily (`help(mlb.add_basemap)` has the details), with these differences:
+
+- `source` is a MapLibre style: a `dict`, the URL of its JSON, a name of `STYLES` (default `OpenFreeMap.Liberty`) or a local `.json` file. Other sources (an `xyzservices` provider, a URL of raster tiles, a raster file) are left to `contextily.add_basemap`, with a `UserWarning`.
+- The style is drawn directly in `crs` (anything `pyproj.CRS.from_user_input` reads) if ml2drender [supports the projection](https://github.com/Kanahiro/ml2drender#projected-coordinate-reference-systems), so `resampling` is ignored. Axes that stretch latitudes, as GeoPandas does in EPSG:4326, get the projection they show, so labels keep their shape.
+- `zoom` is contextily's zoom of 256-pixel tiles (the style is evaluated at MapLibre zoom `zoom - 1`); `"auto"` draws the style at its size on a web page. The image has 192 pixels to the inch of the figure, or its dpi if higher. Lay the figure out (`layout="constrained"`) before adding the basemap.
+- New: `labels=False` drops the labels and icons, `labels="only"` draws only them, above the data; `pixel_ratio` sets the resolution; `load` replaces fetching with HTTPX. OpenHistoricalMap's styles are drawn as of today, as on its website.
+- Downloads are cached on disk as in contextily (`set_cache_dir` keeps them across sessions), but for the style and its TileJSON, which name the current tiles. Failed requests are tried twice more.
+
+Named styles (`STYLES`): maps, terrain and imagery. Check the terms of each service before heavy use; the maps of IGN and PDOK carry no attribution, so pass `attribution=` yourself. `Mapterhorn.Hillshade` is transparent, to shade another basemap:
+
+```python
+mlb.add_basemap(ax, source="OpenFreeMap.Positron", labels=False)
+mlb.add_basemap(ax, source="Mapterhorn.Hillshade")
+mlb.add_basemap(ax, source="OpenFreeMap.Positron", labels="only")
+```
+
+| Names | Coverage | Terms |
+|---|---|---|
+| `OpenFreeMap.{Liberty,Bright,Positron,Dark,Fiord}` (default `Liberty`) | World | [OpenFreeMap](https://openfreemap.org/tos/) |
+| `VersaTiles.{Colorful,Natural,Muted,Gray,Toner}`, each also `...Dark`, and over Mapterhorn's hillshade `...Terrain` and `...DarkTerrain` | World | [VersaTiles](https://github.com/versatiles-org/versatiles-documentation/blob/main/guides/use_tiles_versatiles_org.md) |
+| `Maptoolkit.{Summer,Winter,Street,Light,Dark,Cycling,Hiking}` | World | [Maptoolkit](https://docs.maptoolkit.org/map-styles/) |
+| `CartoDB.{Positron,DarkMatter,Voyager}` and `CartoDB.{Positron,DarkMatter,Voyager}NoLabels` (as `labels=False`; for labels only, use `labels="only"`) | World | [CARTO](https://carto.com/legal/basemap-terms/) (asks for an API key) |
+| `OpenHistoricalMap.{Historical,JapaneseScroll,Woodblock,Railway}` (as of today) | World, history | [OpenHistoricalMap](https://wiki.openstreetmap.org/wiki/OpenHistoricalMap/Reuse) (CC0) |
+| `MapLibre.Demotiles` | World, low zooms | MapLibre's demo |
+| `BasemapDE.{Color,Gray,Topo}` | Germany | [basemap.de](https://sgx.geodatenzentrum.de/public/gdz/lizenz/deu/nutzungsbedingungen_basemapde.pdf) |
+| `swisstopo.{LightBaseMap,BaseMap,BaseMapWinter,ImageryBaseMap}` | Switzerland | [swisstopo](https://www.geo.admin.ch/en/general-terms-of-use-fsdi) |
+| `IGN.{Plan,PlanGris}` | France | [Géoplateforme](https://cartes.gouv.fr/aide/fr/guides-utilisateur/utiliser-les-services-de-la-geoplateforme/limites-d-usage/) |
+| `PDOK.{Standaard,Darkmode}` | Netherlands | [PDOK](https://www.pdok.nl/) (CC BY 4.0) |
+| `GSI.{Standard,Pale}` | Japan | [GSI](https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html) |
+| `Mapterhorn.{Hillshade,Relief}` | World, terrain | [Mapterhorn](https://mapterhorn.com/attribution) |
+| `VersaTiles.Satellite` | World, imagery | [VersaTiles](https://github.com/versatiles-org/versatiles-documentation/blob/main/guides/use_tiles_versatiles_org.md) |
+| `EOX.Sentinel2Cloudless` | World, imagery of 2024 | [EOX](https://cloudless.eox.at/) (CC BY-NC-SA 4.0, non-commercial) |
+| `EOX.Sentinel2Cloudless2016` | World, imagery of 2016 | [EOX](https://cloudless.eox.at/) (CC BY 4.0) |
+| `USGS.Imagery` | United States, imagery | USGS (public domain) |
+| `GSI.Photo` | Japan, imagery | [GSI](https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html) |
+| `PDOK.Luchtfoto` | Netherlands, imagery | [PDOK](https://www.pdok.nl/) (CC BY 4.0) |
+| `IGN.Ortho` | France, imagery | [Géoplateforme](https://cartes.gouv.fr/aide/fr/guides-utilisateur/utiliser-les-services-de-la-geoplateforme/limites-d-usage/) (Etalab 2.0) |
+
+To render a box of a CRS to an image without matplotlib, use `Renderer.projected(...).render(ProjectedBox(...))` above.
+
 ## License
 
 BSD-3-Clause

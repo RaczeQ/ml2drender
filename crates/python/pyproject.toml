@@ -11,6 +11,7 @@ dependencies = ["httpx>=0.28.1,<1", "certifi>=2026.10.19"]
 license = { text = "BSD-3-Clause" }
 dynamic = ["version"]
 classifiers = [
+    "Framework :: Matplotlib",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: GIS",
@@ -23,7 +24,10 @@ Documentation = "https://github.com/Kanahiro/ml2drender/tree/main/crates/python"
 Demo = "https://kanahiro.github.io/ml2drender/"
 
 [dependency-groups]
-dev = ["ruff==0.17.4"]
+dev = [{ include-group = "lint" }, { include-group = "test" }]
+lint = ["ruff==0.17.4"]
+# For ml2drender.basemap's tests: not dependencies of the package, which asks for them when used.
+test = ["matplotlib>=3.11.2", "pyproj>=3.7.2"]
 
 [tool.uv]
 required-version = ">=0.13.5"

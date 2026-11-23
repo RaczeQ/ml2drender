@@ -26,8 +26,8 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked --workspace -- -D warnings
       - run: cargo clippy --target wasm32-unknown-unknown -p ml2drender-wasm --locked -- -D warnings
-      - run: uv run --project crates/python --only-group dev ruff check crates/python
-      - run: uv run --project crates/python --only-group dev ruff format --check crates/python
+      - run: uv run --project crates/python --only-group lint ruff check crates/python
+      - run: uv run --project crates/python --only-group lint ruff format --check crates/python
 
   rust:
     runs-on: ubuntu-latest
@@ -152,7 +152,10 @@ jobs:
           manylinux: auto
       - name: Test the wheel
         # uv run: the activated environment, whatever python maturin-action put first on PATH (macOS).
-        run: uv pip install wheels/*.whl && uv run --no-project python -m unittest discover crates/python/tests
+        # The test group: matplotlib and pyproj, not dependencies of the package, for ml2drender.basemap's tests.
+        run: |
+          uv pip install wheels/*.whl --group crates/python/pyproject.toml:test
+          uv run --no-project python -m unittest discover crates/python/tests
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: wheel-${{ matrix.platform }}-${{ matrix.arch }}
